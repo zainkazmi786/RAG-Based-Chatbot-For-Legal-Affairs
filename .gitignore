@@ -20,7 +20,7 @@ venv/
 *.faiss
 
 # JSON/PKL data files
-*.json
+# *.json
 *.pkl
 
 # OS-specific
