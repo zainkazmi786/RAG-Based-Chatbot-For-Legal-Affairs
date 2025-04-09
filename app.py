@@ -1,32 +1,37 @@
 from retrieval.retriever import HybridRetriever
 from generation.llm_chain import JudgmentGenerator
 import json
+import traceback
 
-# Initialize components
-try:
-    retriever = HybridRetriever("data/processed/processed_cases.json")
-except UnicodeDecodeError as e:
-    print(f"Encoding error: {e}\nPlease ensure the file is UTF-8 encoded")
-    exit(1)
-generator = JudgmentGenerator("generation/prompts/legal_judgment.txt")
+def chat_interface():
+    # Initialize components
+    try:
+        retriever = HybridRetriever("data/processed/processed_cases.json")
+        generator = JudgmentGenerator("generation/prompts/legal_judgment.txt")
+    except Exception as e:
+        print(f"Initialization failed: {str(e)}")
+        return
 
-def predict_judgment(scenario):
-    # Retrieve relevant cases
-    results = retriever.retrieve(scenario["facts"])
+    print("Pakistan Family Law Expert System (Type 'quit' to exit)")
     
-    # Generate judgment
-    return generator.generate(
-        facts=scenario["facts"],
-        precedents=results["vector"]
-    )
+    while True:
+        try:
+            user_input = input("\nYou: ").strip()
+            if not user_input:
+                continue
+                
+            if user_input.lower() in ('quit', 'exit'):
+                break
 
-# Example usage
-scenario = {
-    "facts": """Summarize the judgment in "Muhammad Iqbal vs Mst. Naila Bibi 2022 SCMR 1020".
+            # Process all query types
+            precedents = retriever.retrieve(user_input)["vector"]
+            response = generator.generate(user_input, precedents)
+            
+            print("\nAssistant:")
+            print(response)
 
-What was the reasoning behind the court’s decision in a child custody case in Lahore High Court, 2023?
+        except Exception as e:
+            print(f"\nError: {str(e)}\nPlease rephrase your question")
 
-Which precedent deals with dower (haq mehr) in Pakistan’s Supreme Court rulings?""",
-}
-
-print(predict_judgment(scenario))
+if __name__ == "__main__":
+    chat_interface()

@@ -21,15 +21,29 @@ class JudgmentGenerator:
             | StrOutputParser()
         )
     
-    def generate(self, facts, precedents):
+    def _determine_query_type(self, query):
+        query = query.lower()
+        if any(word in query for word in ["what is", "define", "meaning of"]):
+            return "term_definition"
+        elif any(word in query for word in ["scenario", "what if", "predict"]):
+            return "scenario_prediction"
+        else:
+            return "general_question"
+
+    def generate(self, user_input, precedents):
+        query_type = self._determine_query_type(user_input)
+        
         case_numbers = ", ".join(
-            [p.metadata["case_number"] for p in precedents]
-        )
+            p.metadata.get("case_number", "N/A") 
+            for p in precedents
+        ) if precedents else "N/A"
+
         return self.chain.invoke({
-            "facts": facts,
+            "input": user_input,
             "precedents": "\n".join(
-                f"Case {p.metadata['case_number']} ({p.metadata['date']}):\n{p.page_content[:500]}..."
+                f"Case {p.metadata.get('case_number', 'N/A')}: {p.page_content[:300]}..."
                 for p in precedents
             ),
-            "case_numbers": case_numbers
+            "case_numbers": case_numbers,
+            "query_type": query_type
         })
