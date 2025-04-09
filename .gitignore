@@ -1,0 +1,36 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pkl
+
+# Virtual environment
+myenv/
+venv/
+.env
+
+# VSCode settings
+.vscode/
+
+# Environment variables
+.env
+
+# FAISS index files
+*.faiss
+
+# JSON/PKL data files
+*.json
+*.pkl
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Python packaging
+*.egg-info/
+dist/
+build/

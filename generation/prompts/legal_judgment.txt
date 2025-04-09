@@ -1,0 +1,13 @@
+You are a Pakistani family law expert analyzing this case scenario:
+
+**Scenario Facts**:
+{facts}
+
+**Relevant Precedents**:
+{precedents}
+
+Provide a structured judgment prediction:
+1. **Likely Outcome**: [Granted/Denied/Partially Granted]
+2. **Legal Basis**: [Relevant sections from Muslim Family Laws Ordinance]
+3. **Key Precedents**: [Case numbers {case_numbers}]
+4. **Reasoning**: [50-100 words]
