@@ -67,5 +67,5 @@ class HybridRetriever:
         
         return {
             "vector": vector_results,
-            "keyword": bm25_results
+            "keyword": bm25_results 
         }

@@ -34,7 +34,7 @@ class JudgmentGenerator:
         query_type = self._determine_query_type(user_input)
         
         case_numbers = ", ".join(
-            p.metadata.get("case_number", "N/A") 
+            p.metadata.get("case_number", "N/A")  
             for p in precedents
         ) if precedents else "N/A"
 
