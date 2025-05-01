@@ -1,4 +1,6 @@
 from sentence_transformers import SentenceTransformer
+from langchain.embeddings import HuggingFaceEmbeddings
+
 from langchain_community.vectorstores import FAISS
 from rank_bm25 import BM25Okapi
 import json
@@ -9,7 +11,7 @@ import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"  # Prevent tokenizer issues
 
 class HybridRetriever:
-    def __init__(self, processed_data_path):
+    def __init__(self, processed_data_path, new_data_path=None):
         # Set up paths
         self.data_path = Path(processed_data_path)
         self.vector_store_dir = self.data_path.parent
@@ -17,27 +19,69 @@ class HybridRetriever:
         
         # Initialize embedding model
         self.embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
-        # print(model.encode(["test"])[0][:5]) 
         
-        # Load data
+        # Load base data
         with open(processed_data_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
         self.documents = [d["text"] for d in data]
         self.metadata = [d["metadata"] for d in data]
+
+        # Load and merge new data if provided
+        if new_data_path:
+            self._add_new_data(new_data_path)
         
         # Initialize components
         self.vector_db = self._initialize_vector_store()
         self.bm25 = BM25Okapi([doc.split() for doc in self.documents])
     
+    def _add_new_data(self, new_data_path):
+        """Improved version with content+metadata check"""
+        with open(new_data_path, 'r', encoding='utf-8') as f:
+            new_data = json.load(f)
+        
+        existing = set(zip(
+            [hash(d) for d in self.documents], 
+            [hash(str(m)) for m in self.metadata]
+        ))
+        added = 0
+        
+        for item in new_data:
+            content_hash = hash(item["text"])
+            meta_hash = hash(str(item["metadata"]))
+            if (content_hash, meta_hash) not in existing:
+                self.documents.append(item["text"])
+                self.metadata.append(item["metadata"])
+                existing.add((content_hash, meta_hash))
+                added += 1
+        
+        print(f"Added {added} new documents from {new_data_path}")
+        return added > 0  # Return whether anything was added
+
     def _initialize_vector_store(self):
+        embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+
         if (self.vector_store_dir / f"{self.vector_store_name}.faiss").exists():
             print("Loading existing vector store...")
-            return FAISS.load_local(
+            vector_db = FAISS.load_local(
                 folder_path=str(self.vector_store_dir),
-                embeddings=self._embed_query,  # Pass our embedding function
+                embeddings=embeddings,
                 index_name=self.vector_store_name,
                 allow_dangerous_deserialization=True
             )
+            
+            # Check if we need to add new documents
+            current_count = len(self.documents)
+            stored_count = vector_db.index.ntotal
+            if current_count > stored_count:
+                print(f"Adding {current_count - stored_count} new embeddings...")
+                new_texts = self.documents[stored_count:]
+                new_metadatas = self.metadata[stored_count:]
+                vector_db.add_texts(texts=new_texts, metadatas=new_metadatas)
+                vector_db.save_local(
+                    folder_path=str(self.vector_store_dir),
+                    index_name=self.vector_store_name
+                )
+            return vector_db
         else:
             print("Creating new vector store...")
             embeddings = self.embedding_model.encode(self.documents)
