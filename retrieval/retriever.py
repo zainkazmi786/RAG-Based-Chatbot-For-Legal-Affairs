@@ -28,7 +28,8 @@ class HybridRetriever:
 
         # Load and merge new data if provided
         if new_data_path:
-            self._add_new_data(new_data_path)
+            for i in new_data_path:
+                self._add_new_data(i)
         
         # Initialize components
         self.vector_db = self._initialize_vector_store()
@@ -108,6 +109,12 @@ class HybridRetriever:
         bm25_scores = self.bm25.get_scores(query.split())
         bm25_indices = sorted(range(len(bm25_scores)), key=lambda i: -bm25_scores[i])[:top_k]
         bm25_results = [{"text": self.documents[i], "metadata": self.metadata[i]} for i in bm25_indices]
+
+        for doc in vector_results:
+            doc.metadata["retrieval_score"] = "vector_high"
+        
+        for doc in bm25_results:
+            doc["metadata"]["retrieval_score"] = "keyword_match"  # Correct access for dictionaries
         
         return {
             "vector": vector_results,

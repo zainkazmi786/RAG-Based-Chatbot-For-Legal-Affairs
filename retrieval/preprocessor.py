@@ -48,6 +48,6 @@ def process_cases(input_path, output_dir):
 
 if __name__ == "__main__":
     process_cases(
-        input_path=Path("./data/cases1.json"),
+        input_path=Path("./data/cases.json"),
         output_dir=Path("./data/processed")
     )

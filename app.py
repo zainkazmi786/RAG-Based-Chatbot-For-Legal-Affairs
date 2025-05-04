@@ -1,6 +1,7 @@
 from retrieval.retriever import HybridRetriever
 from generation.llm_chain import JudgmentGenerator
 import json
+from langchain.schema import Document  
 from pathlib import Path
 import traceback
 
@@ -9,7 +10,7 @@ def chat_interface():
         # Initialize with base data
         retriever = HybridRetriever(
             "data/processed/processed_cases.json",
-            new_data_path="data/processed/processed_cpc_laws.json"  # Optional new data
+            new_data_path=["data/processed/FamilyCourtsAct1964_processed.json" , "data/processed/processed_cpc_laws.json" ,"data/processed/processed_ordinance_data.json"]  # Optional new data
         )
         generator = JudgmentGenerator("generation/prompts/legal_judgment.txt")
         
@@ -42,8 +43,30 @@ def chat_interface():
                 continue
 
             # Normal query processing
-            precedents = retriever.retrieve(user_input)["vector"]
-            response = generator.generate(user_input, precedents)
+            retrieved_data = retriever.retrieve(user_input)
+
+            all_docs = []
+            all_docs.extend(retrieved_data["vector"]) 
+            
+            # Combine vector and keyword results
+            for doc_dict in retrieved_data["keyword"]:
+                all_docs.append(Document(
+                    page_content=doc_dict["text"],
+                    metadata=doc_dict["metadata"]
+                ))
+            
+            # Remove duplicate documents
+            seen = set()
+            unique_docs = []
+            for doc in all_docs:
+                identifier = f"{doc.page_content[:50]}-{str(doc.metadata)}"
+                if identifier not in seen:
+                    seen.add(identifier)
+                    unique_docs.append(doc)
+            
+            # Generate response with all relevant data
+            # response = unique_docs
+            response = generator.generate(user_input, unique_docs)
             
             print("\nAssistant:")
             print(response)
