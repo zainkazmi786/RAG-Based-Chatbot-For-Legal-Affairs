@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Pakistan Family Law Expert System{% endblock %}
+
+{% block content %}
+<div class="chat-container">
+    <div class="chat-header">
+        <h2>Pakistan Family Law Expert System</h2>
+        <div class="chat-controls">
+            <button id="clear-chat" class="btn-outline">
+                <i class="fas fa-trash"></i> Clear Chat
+            </button>
+        </div>
+    </div>
+    
+    <div class="chat-messages" id="chat-messages">
+        <div class="message system">
+            <div class="message-content">
+                <p>Welcome to the Pakistan Family Law Expert System. How can I help you today?</p>
+                <p class="suggestions">You can ask about:</p>
+                <div class="suggestion-chips">
+                    <button class="suggestion-chip">What is khula?</button>
+                    <button class="suggestion-chip">Child custody laws in Pakistan</button>
+                    <button class="suggestion-chip">Divorce procedures</button>
+                    <button class="suggestion-chip">Maintenance rights</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="chat-input-container">
+        <div class="typing-indicator" id="typing-indicator">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <form id="chat-form" class="chat-form">
+            <textarea 
+                id="user-input" 
+                placeholder="Ask a legal question..." 
+                rows="1"
+                class="chat-input"
+            ></textarea>
+            <button type="submit" class="send-button">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Markdown parser library
+    document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js"><\/script>');
+</script>
+{% endblock %}

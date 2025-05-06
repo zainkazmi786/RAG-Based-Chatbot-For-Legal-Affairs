@@ -1,78 +1,109 @@
+from flask import Flask, render_template, request, jsonify
 from retrieval.retriever import HybridRetriever
 from generation.llm_chain import JudgmentGenerator
-import json
-from langchain.schema import Document  
+from langchain.schema import Document
 from pathlib import Path
 import traceback
+import time
+import json
 
-def chat_interface():
+app = Flask(__name__)
+
+# Initialize with base data
+retriever = HybridRetriever(
+    "data/processed/processed_cases.json",
+    new_data_path=["data/processed/FamilyCourtsAct1964_processed.json",
+                  "data/processed/processed_cpc_laws.json",
+                  "data/processed/processed_ordinance_data.json"]
+)
+generator = JudgmentGenerator("generation/prompts/legal_judgment.txt")
+
+@app.route('/')
+def index():
+    """Render the main chat interface."""
+    return render_template('index.html')
+
+@app.route('/api/chat', methods=['POST'])
+def chat():
+    """Process chat messages and return responses."""
     try:
-        # Initialize with base data
-        retriever = HybridRetriever(
-            "data/processed/processed_cases.json",
-            new_data_path=["data/processed/FamilyCourtsAct1964_processed.json" , "data/processed/processed_cpc_laws.json" ,"data/processed/processed_ordinance_data.json"]  # Optional new data
-        )
-        generator = JudgmentGenerator("generation/prompts/legal_judgment.txt")
+        data = request.json
+        user_input = data.get('message', '').strip()
         
-        print("Pakistan Family Law Expert System (Type 'quit' to exit)")
-        print(f"Knowledge base contains {len(retriever.documents)} documents")
+        if not user_input:
+            return jsonify({"error": "No message provided"}), 400
+            
+        # Show typing indicator on frontend by returning immediately
+        # Get retrieved data based on user input
+        retrieved_data = retriever.retrieve(user_input)
         
-        while True:
-            user_input = input("\nYou: ").strip()
-            if not user_input:
-                continue
-                
-            if user_input.lower() in ('quit', 'exit'):
-                break
-
-            # Handle special admin commands
-            if user_input.startswith("!add "):
-                new_data_path = user_input[5:].strip()
-                try:
-                    if not Path(new_data_path).exists():
-                        print(f"Error: File not found at {new_data_path}")
-                        continue
-                        
-                    if retriever._add_new_data(new_data_path):
-                        retriever.vector_db = retriever._initialize_vector_store()
-                        print(f"Updated with {len(retriever.documents)} total docs")
-                    else:
-                        print("No new documents added (duplicates detected)")
-                except Exception as e:
-                    print(f"Addition failed: {str(e)}")
-                continue
-
-            # Normal query processing
-            retrieved_data = retriever.retrieve(user_input)
-
-            all_docs = []
-            all_docs.extend(retrieved_data["vector"]) 
-            
-            # Combine vector and keyword results
-            for doc_dict in retrieved_data["keyword"]:
-                all_docs.append(Document(
-                    page_content=doc_dict["text"],
-                    metadata=doc_dict["metadata"]
-                ))
-            
-            # Remove duplicate documents
-            seen = set()
-            unique_docs = []
-            for doc in all_docs:
-                identifier = f"{doc.page_content[:50]}-{str(doc.metadata)}"
-                if identifier not in seen:
-                    seen.add(identifier)
-                    unique_docs.append(doc)
-            
-            # Generate response with all relevant data
-            # response = unique_docs
-            response = generator.generate(user_input, unique_docs)
-            
-            print("\nAssistant:")
-            print(response)
-
+        all_docs = []
+        all_docs.extend(retrieved_data["vector"])
+        
+        # Combine vector and keyword results
+        for doc_dict in retrieved_data["keyword"]:
+            all_docs.append(Document(
+                page_content=doc_dict["text"],
+                metadata=doc_dict["metadata"]
+            ))
+        
+        # Remove duplicate documents
+        seen = set()
+        unique_docs = []
+        for doc in all_docs:
+            identifier = f"{doc.page_content[:50]}-{str(doc.metadata)}"
+            if identifier not in seen:
+                seen.add(identifier)
+                unique_docs.append(doc)
+        
+        # Process the query with LLM
+        response = generator.generate(user_input, unique_docs)
+        
+        # Return structured response with sources
+        return jsonify({
+            "response": response,
+            "sources_count": len(unique_docs),
+            "timestamp": time.time()
+        })
     except Exception as e:
-        print(f"\nError: {str(e)}\n{traceback.format_exc()}")
+        print(traceback.format_exc())
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/add-source', methods=['POST'])
+def add_source():
+    """Add a new data source to the retriever."""
+    try:
+        data = request.json
+        source_path = data.get('source_path', '').strip()
+        
+        if not source_path:
+            return jsonify({"error": "No source path provided"}), 400
+            
+        if not Path(source_path).exists():
+            return jsonify({"error": f"File not found at {source_path}"}), 404
+            
+        if retriever._add_new_data(source_path):
+            retriever.vector_db = retriever._initialize_vector_store()
+            return jsonify({
+                "success": True,
+                "message": f"Updated with {len(retriever.documents)} total docs",
+                "document_count": len(retriever.documents)
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "message": "No new documents added (duplicates detected)"
+            })
+    except Exception as e:
+        print(traceback.format_exc())
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/document-count')
+def document_count():
+    """Return the current document count."""
+    return jsonify({
+        "count": len(retriever.documents)
+    })
 
 if __name__ == "__main__":
-    chat_interface()
+    app.run(debug=True)

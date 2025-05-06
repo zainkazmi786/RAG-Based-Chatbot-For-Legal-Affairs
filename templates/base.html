@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Pakistan Family Law Expert System{% endblock %}</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" class="logo">
+                <h1>Legal Expert</h1>
+            </div>
+            
+            <div class="sidebar-content">
+                <div class="knowledge-base-info">
+                    <h3>Knowledge Base</h3>
+                    <p><span id="doc-count">Loading...</span> documents</p>
+                </div>
+                
+                <div class="add-source-form">
+                    <h3>Add Data Source</h3>
+                    <div class="input-group">
+                        <input type="text" id="source-path" placeholder="data/path/to/file.json">
+                        <button id="add-source-btn" class="btn-secondary">
+                            <i class="fas fa-plus"></i> Add
+                        </button>
+                    </div>
+                    <div id="source-add-message" class="message"></div>
+                </div>
+                
+                <div class="about-section">
+                    <h3>About</h3>
+                    <p>Pakistan Family Law Expert System uses advanced AI to provide insights on family law matters.</p>
+                    <p class="disclaimer">This system is for informational purposes only and does not constitute legal advice.</p>
+                </div>
+            </div>
+            
+            <div class="sidebar-footer">
+                <p>&copy; 2025 Legal RAG System</p>
+            </div>
+        </aside>
+        
+        <main class="content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+    
+    <!-- Custom JavaScript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>
